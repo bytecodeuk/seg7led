@@ -75,13 +75,13 @@ public:
 	uint8_t add( unsigned long l );
 	uint8_t add( char c );
 	void clear();
-	uint8_t getNumDigits() { return (uint8_t) CLEDBUF_NUMDIGITS; }
-	char * getBuf() { return buf; }
+	uint8_t getNumDigits();
+	char * getBuf();
 	
 private:
-	char buf[ CLEDBUF_BUFSIZE ];
-	int bufPos;
-	int numChars;
+	char m_buf[ CLEDBUF_BUFSIZE ];
+	uint8_t  m_bufPos;
+	uint8_t  m_numChars;
 };
 
 

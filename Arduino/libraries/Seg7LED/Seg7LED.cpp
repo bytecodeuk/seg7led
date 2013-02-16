@@ -118,34 +118,6 @@ bool Seg7LED::print4LEDChars( char * aStr )
 	return true;
 }
 
-bool Seg7LED::DPSetPos( int aPos )
-{
-	if( aPos > 3 || aPos < 0 )
-	{
-		return false;
-	}
-	
-	bitSet( m_DPPos, aPos );
-	return true;
-}
-
-bool Seg7LED::DPClearPos( int aPos )
-{
-	if( aPos > 3 || aPos < 0 )
-	{
-		return false;
-	}
-
-	bitClear( m_DPPos, aPos );
-	return true;	
-}
-
-bool Seg7LED::DPClearAll()
-{
-	m_DPPos = 0;
-	return true;
-}
-
 bool Seg7LED::printFloat( double f )
 {
 CLEDBuf LEDBuf;
@@ -157,32 +129,33 @@ CLEDBuf LEDBuf;
 bool Seg7LED::floatToLEDBuf(double number, CLEDBuf & LEDBuf) 
 { 
 	uint8_t digits = LEDBuf.getNumDigits();
-	size_t n = 0;
 	LEDBuf.clear();
   
 	// Handle negative numbers
 	if (number < 0.0)
 	{
-		n += LEDBuf.add('-');
+		LEDBuf.add('-');
 		number = -number;
 	}
 
 	// Round correctly so that print(1.999, 2) prints as "2.00"
 	double rounding = 0.5;
 	for (uint8_t i=0; i<digits; ++i)
+  {
 		rounding /= 10.0;
+  }
 
 	number += rounding;
 
 	// Extract the integer part of the number and print it
 	unsigned long int_part = (unsigned long)number;
 	double remainder = number - (double)int_part;
-	n += LEDBuf.add(int_part);
+	LEDBuf.add(int_part);
 
 	// Print the decimal point, but only if there are digits beyond
 	if (digits > 0) 
 	{
-		n += LEDBuf.addDP();
+		LEDBuf.addDP();
 	}
 
 	// Extract digits from the remainder one at a time
@@ -190,23 +163,11 @@ bool Seg7LED::floatToLEDBuf(double number, CLEDBuf & LEDBuf)
 	{
 		remainder *= 10.0;
 		int toPrint = int(remainder);
-		n += LEDBuf.add(toPrint);
+		LEDBuf.add(toPrint);
 		remainder -= toPrint; 
 	} 
 
 	return true;
-}
-
-bool Seg7LED::setting( char setting )
-{
-	digitalWrite( m_pinLatch, LOW );
-
-	print8BitChar( 'S' );
-	print8BitChar( setting );
-		
-	digitalWrite( m_pinLatch, HIGH );
-
-	return true;	
 }
 
 //------------------
@@ -218,23 +179,23 @@ CLEDBuf::CLEDBuf()
 
 void CLEDBuf::clear()
 {
-	for(uint8_t x = 0; x < sizeof( buf ); x++ )
+	for(uint8_t x = 0; x < sizeof( m_buf ); x++ )
 	{
-		buf[x] = 0;
+		m_buf[x] = 0;
 	}
 		
-	bufPos = 0;
-	numChars = 0;
+	m_bufPos = 0;
+	m_numChars = 0;
 }
 
 uint8_t CLEDBuf::addDP()
 {
-	if( bufPos < (sizeof( buf ) -1) )
+	if( m_bufPos < (sizeof( m_buf ) -1) )
 	{
-		buf[bufPos] = '.';
+		m_buf[m_bufPos] = '.';
 	}
 	
-	bufPos++;
+	m_bufPos++;
 	
 	return 1;
 }
@@ -269,13 +230,24 @@ uint8_t CLEDBuf::add( int i )
 
 uint8_t CLEDBuf::add( char c )
 {
-	if( bufPos < (sizeof( buf ) -1) && numChars < CLEDBUF_NUMDIGITS )
+	if( m_bufPos < (sizeof( m_buf ) -1) && m_numChars < CLEDBUF_NUMDIGITS )
 	{
-		buf[ bufPos ] = c;
+		m_buf[ m_bufPos ] = c;
 	}
 		
-	bufPos++;
-	numChars++;
+	m_bufPos++;
+	m_numChars++;
 	
 	return 1;
 }
+
+uint8_t CLEDBuf::getNumDigits()
+{ 
+  return (uint8_t) CLEDBUF_NUMDIGITS; 
+}
+
+char * CLEDBuf::getBuf()
+{ 
+  return m_buf; 
+}
+
