@@ -1,3 +1,10 @@
+//
+// File: Seg7LED.cpp
+// Author: Andy Shepherd
+// email: seg7led@bytecode.co.uk
+// License: Public Domain
+//
+
 #include "Seg7LED.h"
 
 Seg7LED::Seg7LED( int aPinLatch, int aPinRTS, int aPinData, int aPinCTS )
@@ -72,13 +79,14 @@ bool Seg7LED::printInt( int aVal )
 	return true;
 }
 
+#define BUFFERSIZE_READVALUE 10
 bool Seg7LED::printNumericString( char * aStr )
 {
 	digitalWrite( m_pinLatch, LOW );
 
 	print8BitChar( 'A' );
 
-	int aStrLen = strlen( aStr );
+	int aStrLen = min(strlen( aStr ), BUFFERSIZE_READVALUE);
 	for ( int i = 0;  i < aStrLen; i++ )
 	{
 		print8BitChar( aStr[i] );
@@ -122,11 +130,13 @@ bool Seg7LED::printFloat( double f )
 {
 CLEDBuf LEDBuf;
 
-	floatToLEDBuf( f, LEDBuf );
+	floatToLEDBuf( f, LEDBuf.getNumDigits(), LEDBuf );
 	return printNumericString( LEDBuf.getBuf() );
 }
 
-bool Seg7LED::floatToLEDBuf(double number, CLEDBuf & LEDBuf) 
+// This method is based on Arduino code: Print::printFloat() in Print.cpp
+// Credit to: David A. Mellis
+void Seg7LED::floatToLEDBuf(double number, uint8_t decimal_places,  CLEDBuf & LEDBuf ) 
 { 
 	uint8_t digits = LEDBuf.getNumDigits();
 	LEDBuf.clear();
@@ -134,13 +144,13 @@ bool Seg7LED::floatToLEDBuf(double number, CLEDBuf & LEDBuf)
 	// Handle negative numbers
 	if (number < 0.0)
 	{
-		LEDBuf.add('-');
+		LEDBuf.addChar('-');
 		number = -number;
 	}
 
 	// Round correctly so that print(1.999, 2) prints as "2.00"
 	double rounding = 0.5;
-	for (uint8_t i=0; i<digits; ++i)
+	for (uint8_t i=0; i<decimal_places; ++i)
   {
 		rounding /= 10.0;
   }
@@ -150,104 +160,26 @@ bool Seg7LED::floatToLEDBuf(double number, CLEDBuf & LEDBuf)
 	// Extract the integer part of the number and print it
 	unsigned long int_part = (unsigned long)number;
 	double remainder = number - (double)int_part;
-	LEDBuf.add(int_part);
+	LEDBuf.addULong(int_part);
 
 	// Print the decimal point, but only if there are digits beyond
-	if (digits > 0) 
+	if (LEDBuf.getCurrentDigitPos() < digits) 
 	{
 		LEDBuf.addDP();
 	}
+  else
+  {
+    return;
+  }
 
 	// Extract digits from the remainder one at a time
-	while (digits-- > 0)
+	while (decimal_places-- > 0)
 	{
 		remainder *= 10.0;
 		int toPrint = int(remainder);
-		LEDBuf.add(toPrint);
+		LEDBuf.addInt(toPrint);
 		remainder -= toPrint; 
 	} 
-
-	return true;
 }
 
-//------------------
-
-CLEDBuf::CLEDBuf()
-{
-	clear();
-}
-
-void CLEDBuf::clear()
-{
-	for(uint8_t x = 0; x < sizeof( m_buf ); x++ )
-	{
-		m_buf[x] = 0;
-	}
-		
-	m_bufPos = 0;
-	m_numChars = 0;
-}
-
-uint8_t CLEDBuf::addDP()
-{
-	if( m_bufPos < (sizeof( m_buf ) -1) )
-	{
-		m_buf[m_bufPos] = '.';
-	}
-	
-	m_bufPos++;
-	
-	return 1;
-}
-
-uint8_t CLEDBuf::add( unsigned long l )
-{
-	char sBuf[18];
-	int len = sprintf( sBuf,"%ld", l );
-	int lenToCountDown = len;
-	int pos = 0;
-	
-	while( lenToCountDown > 0 )
-	{
-		add( sBuf[pos++] );
-		lenToCountDown--;
-	}
-	
-	return len;
-}
-
-uint8_t CLEDBuf::add( int i )
-{
-	if( i < 10 && i >= 0)
-	{
-		char itoaBuf[2];
-		itoa( i, itoaBuf, 10 );
-		add( itoaBuf[0] );
-	}
-	
-	return 1;
-}
-
-uint8_t CLEDBuf::add( char c )
-{
-	if( m_bufPos < (sizeof( m_buf ) -1) && m_numChars < CLEDBUF_NUMDIGITS )
-	{
-		m_buf[ m_bufPos ] = c;
-	}
-		
-	m_bufPos++;
-	m_numChars++;
-	
-	return 1;
-}
-
-uint8_t CLEDBuf::getNumDigits()
-{ 
-  return (uint8_t) CLEDBUF_NUMDIGITS; 
-}
-
-char * CLEDBuf::getBuf()
-{ 
-  return m_buf; 
-}
-
+//------------------------------------------------------------------------

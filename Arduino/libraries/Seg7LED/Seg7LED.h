@@ -1,9 +1,15 @@
-//  
+//
+// File: Seg7LED.h
+// Author: Andy Shepherd
+// email: seg7led@bytecode.co.uk
+// License: Public Domain
+//
 
 #ifndef SEG7LED_H
 #define SEG7LED_H
 
 #include <arduino.h>
+#include "CLedBuf.h"
 
 #define CHAR_0 ((byte) 0b1111110)
 #define CHAR_1 ((byte) 0b0110000)
@@ -63,28 +69,6 @@
 #define SEG_G  ((byte) 0b0000001)
 
 
-class CLEDBuf
-{
-#define CLEDBUF_NUMDIGITS 4
-#define CLEDBUF_BUFSIZE  ((CLEDBUF_NUMDIGITS * 2) + 1)
-public:
-	CLEDBuf();
-	
-	uint8_t addDP();
-	uint8_t add( int i );
-	uint8_t add( unsigned long l );
-	uint8_t add( char c );
-	void clear();
-	uint8_t getNumDigits();
-	char * getBuf();
-	
-private:
-	char m_buf[ CLEDBUF_BUFSIZE ];
-	uint8_t  m_bufPos;
-	uint8_t  m_numChars;
-};
-
-
 class Seg7LED
 {
 public:
@@ -94,16 +78,17 @@ public:
 	bool printInt( int aVal );
 	bool print4LEDChars( char * aStr );
 	bool printNumericString( char * aStr );
-	
+  
+  void floatToLEDBuf(double number, uint8_t decimal_places,  CLEDBuf & LEDBuf );  
+/*	
 	bool setting( char setting );
 	
 	bool DPSetPos( int aPos );
 	bool DPClearPos( int aPos );
 	bool DPClearAll();
-	
+	*/
 private:
 	bool print8BitChar( char aCh );
-	bool floatToLEDBuf(double number, CLEDBuf & LEDBuf);
 
 	int m_pinLatch;
 	int m_pinRTS;
